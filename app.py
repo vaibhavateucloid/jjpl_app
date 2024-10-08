@@ -15,7 +15,7 @@ from databricks import sql
 from recon_gold import *
 
 # Set page configuration
-st.set_page_config(page_title="LumenAI Reconciler", page_icon="https://lumenai.eucloid.com/assets/images/logo.svg", layout="wide", initial_sidebar_state="auto", menu_items=None)
+st.set_page_config(page_title="LumenAI Reconciler", page_icon="https://s3.amazonaws.com/lumenai.eucloid.com/assets/images/icons/logo.svg", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 def add_logo_btn1():
     logo_url = "https://lumenai.eucloid.com/assets/images/logo.svg"
