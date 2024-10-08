@@ -144,5 +144,5 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
 
     # Close SQLite connection
     conn.close()
-
+    
     return df_gold_pd
