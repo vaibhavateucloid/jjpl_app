@@ -15,7 +15,7 @@ from databricks import sql
 from recon_gold import *
 
 # Set page configuration
-st.set_page_config(page_title="LumenAI Extractor", page_icon="📈", layout="wide", initial_sidebar_state="auto", menu_items=None)
+st.set_page_config(page_title="LumenAI Reconciler", page_icon="https://lumenai.eucloid.com/assets/images/logo.svg", layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 def add_logo_btn1():
     logo_url = "https://lumenai.eucloid.com/assets/images/logo.svg"
@@ -36,6 +36,13 @@ def add_logo_btn1():
     """,
         unsafe_allow_html=True
     )
+
+def remove_existing_files(extension):
+    """Remove existing files with the specified extension in the current directory."""
+    for filename in os.listdir('.'):
+        if filename.endswith(extension):
+            os.remove(filename)
+            # st.info(f"Removed existing file: {filename}")
 
 def generate_excel_download(df):
     """Generate a downloadable Excel file from a DataFrame."""
@@ -113,9 +120,22 @@ def main():
             if st.button("Generate Report"):
                 if len(uploaded_files) == 2:
                     try:
-                        silver_df_customer = pdf_to_bronze_csv(pdf_path)
-                        sdf_cleaned = clean_ledger_data(sap_excel_file_path)
-
+                        try:
+                            silver_df_customer = pdf_to_bronze_csv(pdf_path)
+                        except UnboundLocalError:
+                            st.error("Please upload the PDF file.")
+                            remove_existing_files('.pdf')
+                            remove_existing_files('.xlsx')
+                            return 
+                        
+                        try:
+                            sdf_cleaned = clean_ledger_data(sap_excel_file_path)
+                        except:
+                            st.error("Please upload the Excel file.")
+                            remove_existing_files('.pdf')
+                            remove_existing_files('.xlsx')
+                            return 
+                        
                         spark_silver_customer_df = pandas_to_spark_silver_customer(silver_df_customer)
                         # st.write("SIlver Customer DF")
                         spark_cleaned_df = pandas_to_spark_cleaned(sdf_cleaned)
