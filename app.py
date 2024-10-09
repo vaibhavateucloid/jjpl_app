@@ -93,8 +93,13 @@ def main():
                         f.write(file_bytes)
 
                     base64_pdf = b64encode(file_bytes).decode('utf-8')
-                    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" style="{iframe_style}" type="application/pdf">PDF Viewer</iframe>'
-
+                    iframe_style = "width: 100%; height: 100vh; border: none;"
+                    # pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" style="{iframe_style}" type="application/pdf">PDF Viewer</iframe>'
+                    pdf_display = f'''
+                                <iframe src="data:application/pdf;base64,{base64_pdf}" style="{iframe_style}" type="application/pdf">
+                                    PDF Viewer
+                                </iframe>
+                                '''
                     if i == 0:
                         col1.markdown(f"##### Uploaded {uploaded_file.name} (File {i + 1}):")
                         col1.markdown(pdf_display, unsafe_allow_html=True)
@@ -140,22 +145,30 @@ def main():
                         # st.write("SIlver Customer DF")
                         spark_cleaned_df = pandas_to_spark_cleaned(sdf_cleaned)
 
-                        df_gold_pd = perform_reconciliation(spark_silver_customer_df, spark_cleaned_df)
-                        # print("I am in streamlit")
-                        # print(df_gold_pd)
+                                    # Perform reconciliation and capture messages
+                        df_gold_pd, messages = perform_reconciliation(spark_silver_customer_df, spark_cleaned_df)
 
-                        # if df_gold_pd is not empty
-                        if df_gold_pd is not None and df_gold_pd.empty == False:
+                        # If df_gold_pd is not empty
+                        if df_gold_pd is not None and not df_gold_pd.empty:
                             st.success("Reconciliation completed!")
                             st.write(df_gold_pd)
 
+                            # Display reconciliation messages
+                            for message in messages:
+                                st.info(message)  # Display messages as info
                             download_link = generate_excel_download(df_gold_pd)
                             st.markdown(download_link, unsafe_allow_html=True)
+
                         elif df_gold_pd is not None and df_gold_pd.empty == True:
-                            st.success("Reconciliation complete. The sets of files uploaded are reconciling.")
+                            for message in messages:
+                                st.info(message) 
+                            remove_existing_files('.pdf')
+                            remove_existing_files('.xlsx')
                     except Exception as e:
                         st.error(f"An error occurred during reconciliation: {str(e)}")
                         st.exception(e)
+                        remove_existing_files('.pdf')
+                        remove_existing_files('.xlsx')
                 else:
                     st.error("Please upload 2 files for reconciliation.")
 

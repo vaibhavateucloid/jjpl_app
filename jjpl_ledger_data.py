@@ -69,13 +69,17 @@ def clean_ledger_data(filename):
     # Convert all column names to lowercase
     sdf_clean.columns = sdf_clean.columns.str.lower()
 
+    # Convert NaN values to None
+    # sdf_clean[['credit_lc', 'debit_lc']] = sdf_clean[['credit_lc', 'debit_lc']].fillna(value=None)
+
     print("Data cleaned and saved!")
     os.remove(filename)
     return sdf_clean
 
 def pandas_to_spark_cleaned(sdf_cleaned):
-    print("Data types in Pandas DataFrame before conversion:")
+    print("Data types in Panas DataFrame before conversion:")
     print(sdf_cleaned.dtypes)
+    
     # Initialize Spark session (if not already created)
     spark = SparkSession.builder \
         .appName("CleanedLedgerConversion") \

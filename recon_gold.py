@@ -39,6 +39,7 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
     ])
 
     df_gold = spark.createDataFrame([], gold_schema)
+    messages = [] 
 
     # Get distinct customer names from both ledgers
     list_customer = [data[0] for data in df_jjpl_ledger.select('customer_name').distinct()
@@ -70,6 +71,7 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
         # Case 1: Closing balances match
         if df_closing_balance_check.where('jjpl.index = jjpl.max_index and customer.index = customer.max_index').collect():
             print('Closing Balance matches. Reconciliation complete')
+            messages.append(f'Customer: {customer} - Closing Balance matches. Reconciliation complete.')
             continue
 
         # Case 2: Additional records in JJPL ledger
@@ -78,9 +80,11 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
             var_jjpl_index = df_closing_balance_check.where('customer.index = customer.max_index').select('jjpl.index').collect()[0][0]
             df_gold_temp = df_jjpl.where(f'index > {var_jjpl_index}') \
                 .withColumn('invoice_number', col('origin_no')) \
-                .withColumn('amount_in_local_currency', coalesce(col('debit_lc'), col('credit_lc'))) \
+                .withColumn('amount_in_local_currency', when(col('debit_lc').isNull() | col('debit_lc').isin(float('nan')), col('credit_lc')).otherwise(col('debit_lc'))) \
                 .withColumn('flag', when(col('debit_lc').isNotNull(), lit('Dr by JJPL, but not Cr by Customer'))
                             .otherwise(lit('Cr by JJPL, but not Dr by Customer')))
+            df_gold_temp.show()
+            messages.append(f'Customer: {customer} - Additional records in JJPL ledger.')
 
         # Case 3: Additional records in Customer ledger
         elif df_closing_balance_check.where('jjpl.index = jjpl.max_index and customer.index != customer.max_index').collect():
@@ -91,6 +95,9 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
                 .withColumn('amount_in_local_currency', coalesce(col('debit_amount_in_local_currency'), col('credit_amount_in_local_currency'))) \
                 .withColumn('flag', when(col('debit_amount_in_local_currency').isNotNull(), lit('Dr by Customer, but not Cr by JJPL'))
                             .otherwise(lit('Cr by Customer, but not Dr by JJPL')))
+            messages.append(f'Customer: {customer} - Additional records in Customer ledger.')
+
+        # Case 4: Closing balances do not match
 
         # Case 4: Closing balances do not match
         else:
@@ -131,10 +138,12 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
                     .withColumn('flag', col('flag'))
             else:
                 print('Closing Balance does not match and opening balance does not match')
+                messages.append(f'Customer: {customer} - Closing Balance does not match and opening balance does not match.')
                 continue
 
         # Append the results to the gold DataFrame
-        df_gold = df_gold.union(df_gold_temp.select(df_gold.columns))
+        # df_gold = df_gold.union(df_gold_temp.select(df_gold.columns))
+        df_gold= df_gold_temp.select(df_gold.columns)
 
     # Insert results into the SQLite table
     df_gold_pd = df_gold.toPandas()  # Convert to Pandas for SQLite insertion
@@ -144,5 +153,11 @@ def perform_reconciliation(df_customer_ledger, df_jjpl_ledger):
 
     # Close SQLite connection
     conn.close()
-    
-    return df_gold_pd
+
+    if df_gold_pd.empty == True:
+        print("Reconciliation completed!")
+
+    return df_gold_pd, messages
+
+
+
