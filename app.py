@@ -93,7 +93,7 @@ def main():
                         f.write(file_bytes)
 
                     base64_pdf = b64encode(file_bytes).decode('utf-8')
-                    iframe_style = "width: 100%; height: 100vh; border: none;"
+                    iframe_style = "width: 100%; height: 600px; border: none;"
                     # pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" style="{iframe_style}" type="application/pdf">PDF Viewer</iframe>'
                     pdf_display = f'''
                                 <iframe src="data:application/pdf;base64,{base64_pdf}" style="{iframe_style}" type="application/pdf">
@@ -101,10 +101,10 @@ def main():
                                 </iframe>
                                 '''
                     if i == 0:
-                        col1.markdown(f"##### Uploaded {uploaded_file.name} (File {i + 1}):")
+                        col1.markdown(f"##### {uploaded_file.name} (File {i + 1}):")
                         col1.markdown(pdf_display, unsafe_allow_html=True)
                     else:
-                        col2.markdown(f"##### Uploaded {uploaded_file.name} (File {i + 1}):")
+                        col2.markdown(f"##### {uploaded_file.name} (File {i + 1}):")
                         col2.markdown(pdf_display, unsafe_allow_html=True)
 
                 elif uploaded_file.name.endswith('.xlsx'):
@@ -116,10 +116,10 @@ def main():
                         f.write(file_bytes)
 
                     if i == 0:
-                        col1.markdown(f"##### Uploaded {uploaded_file.name} (File {i + 1}):")
+                        col1.markdown(f"##### {uploaded_file.name} (File {i + 1}):")
                         col1.dataframe(vdf, height=dataframe_height)
                     else:
-                        col2.markdown(f"##### Uploaded {uploaded_file.name} (File {i + 1}):")
+                        col2.markdown(f"##### {uploaded_file.name} (File {i + 1}):")
                         col2.dataframe(vdf, height=dataframe_height)
 
             if st.button("Generate Report"):
